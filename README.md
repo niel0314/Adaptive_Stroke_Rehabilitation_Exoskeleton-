@@ -67,9 +67,9 @@ This is harmful because the brain learns whatever motion is rehearsed. If the pa
 
 Two inertial measurement units (IMUs) - one on the upper arm and one on the forearm - let us tell a real elbow flexion apart from a shoulder lift. Three findings from the clinical literature shape the algorithm we use (see §3.6.1):
 
-1. In a healthy reach, the elbow contributes about 40 to 60&nbsp;% of the total motion. After a stroke, this drops to 10 to 30&nbsp;% [[7]](#7-references).
-2. The expected balance between shoulder and elbow depends on the *zone* the arm is in. Low down, the shoulder should hardly move at all. High up, the shoulder is at its limit and the elbow has to do everything [[8]](#7-references).
-3. Only the *outgoing* part of a reach should be scored. The way back to rest is not a compensation [[9]](#7-references).
+- In a healthy reach, the elbow contributes about 40 to 60&nbsp;% of the total motion. After a stroke, this drops to 10 to 30&nbsp;% [[7]](#7-references).
+- The expected balance between shoulder and elbow depends on the *zone* the arm is in. Low down, the shoulder should hardly move at all. High up, the shoulder is at its limit and the elbow has to do everything [[8]](#7-references).
+- Only the *outgoing* part of a reach should be scored. The way back to rest is not a compensation [[9]](#7-references).
 
 ### 1.4 Existing solutions and the gap we address
 
@@ -77,11 +77,11 @@ There are established robotic platforms for stroke therapy like MIT-Manus, ARMin
 
 Our project sits in the gap that none of those cover at once:
 
-1. Precise, back-drivable torque control with field-oriented current control.
-2. Short vibrotactile alerts at the soft range-of-motion limits.
-3. Real-time compensation detection grounded in the clinical literature.
-4. One central tare button so every subsystem uses the same arm-orientation reference.
-5. A gamified patient dashboard with a mirror-therapy visualisation.
+- Precise, back-drivable torque control with field-oriented current control.
+- Short vibrotactile alerts at the soft range-of-motion limits.
+- Real-time compensation detection grounded in the clinical literature.
+- One central tare button so every subsystem uses the same arm-orientation reference.
+- A gamified patient dashboard with a mirror-therapy visualisation.
 
 All hardware, firmware and software is released openly. The full prototype costs about €540.
 
@@ -101,37 +101,37 @@ CAD files for the printed parts are in *`/hardware/cad/`*. **Estimated total pro
 
 ### 2.1 Actuation and motor control
 
-| Component | Short description | Source | Cost (€) |
-|---|---|---|---|
-| **ODrive S1** | Single-axis motor controller, 12-50&nbsp;V input, isolated UART. | ODrive Robotics | 155 |
-| **BLDC motor** (D5312s 330KV) | Brushless outrunner motor, smooth at low speed, fully back-drivable. | ODrive Robotics | 85 |
-| **AMT110 incremental encoder** | Reads the motor angle. Configurable resolution via DIP switches, gives one index pulse per revolution. | Digi-Key | 30 |
-| **Mean Well RSP-320-24 PSU** | 24&nbsp;V / 13.4&nbsp;A enclosed power supply, fits inside the ODrive's 12-50&nbsp;V input range. | Farnell | 65 |
-| **230&nbsp;V safety switch with E-stop** | Single-phase switch with a red mushroom-button on the mains feed. | Amazon DE | 25 |
+| Component                              | Description                                                                                              | Source               | Cost (€) |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
+| ODrive S1                              | Single-axis motor controller, 12-50&nbsp;V input, isolated UART.                                         | ODrive Robotics      | 155      |
+| BLDC motor (D5312s 330KV)              | Brushless outrunner motor, smooth at low speed, fully back-drivable.                                     | ODrive Robotics      | 85       |
+| AMT110 incremental encoder             | Reads the motor angle. Configurable resolution via DIP switches, gives one index pulse per revolution.   | Digi-Key             | 30       |
+| Mean Well RSP-320-24 PSU               | 24&nbsp;V / 13.4&nbsp;A enclosed power supply, fits inside the ODrive's 12-50&nbsp;V input range.        | Farnell              | 65       |
+| 230&nbsp;V safety switch with E-stop   | Single-phase switch with a red mushroom-button on the mains feed.                                        | Amazon DE            | 25       |
 
 ### 2.2 Microcontroller and communication
 
-| Component | Short description | Source | Cost (€) |
-|---|---|---|---|
-| **Arduino Micro** (ATmega32U4) | The microcontroller that runs the firmware. | Arduino Official | 25 |
-| Micro-USB data cable | Serial link between Arduino and the PC. | Any | 5 |
-| **Soldered connection board** | A small piece of perfboard with all module connections soldered on it. The Arduino sits in pin headers so we can remove it. | Self-built | 25 |
-| Jumper wires | Dupont jumpers for the off-board IMU and Drake modules. | Any | 6 |
+| Component                              | Description                                                                                              | Source               | Cost (€) |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
+| Arduino Micro (ATmega32U4)             | The microcontroller that runs the firmware.                                                              | Arduino Official     | 25       |
+| Micro-USB data cable                   | Serial link between the Arduino and the PC.                                                              | Any                  | 5        |
+| Soldered connection board              | Perfboard with all module connections soldered on it. The Arduino sits in pin headers so it stays removable. | Self-built           | 25       |
+| Jumper wires                           | Dupont jumpers for the off-board IMU and Drake modules.                                                  | Any                  | 6        |
 
 ### 2.3 Sensors and haptic feedback
 
-| Component | Short description | Source | Cost (€) |
-|---|---|---|---|
-| **MPU-6050 IMU × 2** | 6-axis inertial sensor on I²C. Address `0x68` (upper arm) and `0x69` (forearm). | Adafruit #3886 | 2 × 9 |
-| **DRV2605L haptic driver** | Driver chip for the vibration motor. Address `0x5A`. | Adafruit #2305 | 9 |
-| **Drake LRA actuator** | The actual vibration unit. Reaches full strength in under 15&nbsp;ms, so it can deliver a sharp tap. | Drake / TacHammer | 20 |
+| Component                              | Description                                                                                              | Source               | Cost (€) |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
+| MPU-6050 IMU × 2                       | 6-axis inertial sensor on I²C. Address `0x68` (upper arm) and `0x69` (forearm).                          | Adafruit #3886       | 2 × 9    |
+| DRV2605L haptic driver                 | Driver chip for the vibration motor. Address `0x5A`.                                                     | Adafruit #2305       | 9        |
+| Drake LRA actuator                     | The actual vibration unit. Reaches full strength in under 15&nbsp;ms, so it can deliver a sharp tap.     | Drake / TacHammer    | 20       |
 
 ### 2.4 Mechanical structure
 
-| Component | Short description | Source | Cost (€) |
-|---|---|---|---|
-| **3D-printed exoskeleton frame** | Self-designed upper-arm cuff, elbow housing, motor bracket and forearm linkage. Printed in PLA. STEP files in *`/hardware/cad/`*. | Self-designed | 60 |
-| Fasteners + Velcro straps | M3/M4 screws and 50&nbsp;mm Velcro for patient attachment. | Local hardware store | 12 |
+| Component                              | Description                                                                                              | Source               | Cost (€) |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
+| 3D-printed exoskeleton frame           | Self-designed upper-arm cuff, elbow housing, motor bracket and forearm linkage. PLA. STEP files in *`/hardware/cad/`*. | Self-designed        | 60       |
+| Fasteners + Velcro straps              | M3/M4 screws and 25&nbsp;mm Velcro for patient attachment.                                               | Local hardware store | 12       |
 
 ---
 
@@ -145,7 +145,7 @@ The system is split into three layers. Each layer runs on its own hardware. The 
 
 - **Layer 1 - Python dashboard on a PC.** This is what the therapist looks at and clicks on. It does the user interface, the live graphs, the compensation monitor, the gamified modes, the 3D pose view and the ODrive PID tuning panel. Speed is not critical here because a human cannot notice a 50&nbsp;ms delay. The dashboard talks to Layer&nbsp;2 over a USB serial cable.
 
-- **Layer 2 - Arduino Micro.** This is the "brain" of the device. It reads the two IMU sensors every few milliseconds, decides when to fire the vibration pulse, takes commands from the dashboard, and tells the ODrive what torque to apply. It runs about a hundred times per second. We need a real microcontroller here because Python on a PC is too slow and too unpredictable for this job.
+- **Layer 2 - Arduino Micro.** This is the "brain" of the device. It reads the two IMU sensors every few milliseconds, decides when to fire the vibration pulse, takes commands from the dashboard, and tells the ODrive what torque to apply. It runs about a hundred times per second.
 
 - **Layer 3 - ODrive S1.** This is the motor controller. It runs the low-level math (field-oriented current control) that turns "I want this much torque" into the right voltages and currents on the motor coils. It does this around 8&nbsp;000 times per second on its own dedicated processor. If the Arduino above it stops talking for any reason, the ODrive keeps holding the last torque it was asked to apply, so the patient is not suddenly let go or jerked.
 
@@ -226,7 +226,7 @@ odrv0.config.dc_bus_overvoltage_trip_level  = 25     # V
 odrv0.config.dc_bus_undervoltage_trip_level = 22     # V
 ```
 
-We sit at 24&nbsp;V because that is what the PSU produces. The reason for the upper limit at 25&nbsp;V is that when the motor slows down the arm, it briefly acts as a generator and pushes some voltage back into the supply. We need a 1&nbsp;V margin so this normal behaviour does not trigger a shutdown. The lower limit at 22&nbsp;V catches a brownout or an unplugged PSU before the controller starts misbehaving.
+We sit at 24&nbsp;V because that is what the PSU produces. The reason for the upper limit at 25&nbsp;V is that when the motor slows down the arm, it briefly acts as a generator and pushes some voltage back into the supply. We need a 1&nbsp;V margin so this normal behaviour does not trigger a shutdown. The lower limit at 22&nbsp;V catches a brownout (a brief voltage dip on the mains) or a disconnected power supply. Below that voltage the ODrive can no longer fully switch the motor MOSFETs, so shutting down is safer than trying to keep running.
 
 #### 3.4.2 Motor thermistor disabled
 
@@ -242,6 +242,8 @@ odrv0.config.uart_a_baudrate = 115200
 odrv0.config.gpio7_mode      = GpioMode.UART_A   # TX
 odrv0.config.gpio8_mode      = GpioMode.UART_A   # RX
 ```
+
+This UART is **galvanically isolated** on the ODrive S1. The signal pins on the connector are connected to the rest of the board through tiny digital isolator chips instead of a direct wire, so the Arduino sits on a different electrical reference than the high-current side of the controller. If something ever goes wrong on the motor side, like a voltage spike or a shorted coil, the spike cannot travel up the serial cable into the Arduino or the laptop behind it. This is the main reason we picked the S1 over cheaper non-isolated controllers.
 
 #### 3.4.4 Persistent calibration with the encoder index
 
@@ -358,7 +360,7 @@ These guards run independently of the therapy mode, so any bug in the therapy la
 
 #### 3.5.8 Vibration suppression
 
-When the patient is not strapped tightly into the brace, the whole system can start oscillating at low frequency. This happens because the controller was tuned assuming a certain mass is attached to it. With a smaller mass (or no arm at all) the system is "too sharp" and tiny disturbances grow into a visible wobble.
+When the patient is not strapped tightly into the brace, the whole system can start oscillating at low frequency. This happens because the controller was tuned for the weight of an actual arm. With a smaller load (or no arm in the brace at all), the same motor torque produces a bigger acceleration than the controller expects. A tiny correction overshoots its target, so the controller pushes the other way, overshoots again, and the cycle repeats. The result is a visible back-and-forth wobble that does not damp out on its own.
 
 The fix is automatic. We already have a smoothed velocity from §3.5.1. We also have the raw velocity. During normal motion, the two are very close to each other. During a wobble, the raw value swings rapidly while the smoothed value stays steady, so the difference between them becomes large. We add a damping torque proportional to that difference. It kicks in only when the wobble is present, and does nothing the rest of the time. The strength is the "Shock Reduction" slider (default 1.5).
 
