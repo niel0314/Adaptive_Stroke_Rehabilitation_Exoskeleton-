@@ -97,7 +97,7 @@ All hardware, firmware and software is released openly. The full prototype costs
 
 ## 2. Supplies - Bill of materials
 
-CAD files for the printed parts are in *`/cad/`*. **Estimated total prototype cost: approximately €540.**
+CAD files for the printed parts are in *`/cad/`* (Siemens NX `.prt` format). **Estimated total prototype cost: approximately €540.**
 
 ### 2.1 Actuation and motor control
 
@@ -130,14 +130,14 @@ CAD files for the printed parts are in *`/cad/`*. **Estimated total prototype co
 
 | Component                              | Description                                                                                              | Source               | Cost (€) |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
-| 3D-printed exoskeleton frame           | Self-designed upper-arm cuff, elbow housing, motor bracket and forearm linkage. PLA. STEP files in *`/cad/`*. | Self-designed        | 60       |
+| 3D-printed exoskeleton frame           | Self-designed upper-arm cuff, elbow housing, motor bracket and forearm linkage. PLA. Siemens NX `.prt` files in *`/cad/`*. | Self-designed        | 60       |
 | Fasteners + Velcro straps              | M3/M4 screws and 25&nbsp;mm Velcro for patient attachment.                                               | Local hardware store | 12       |
 
 ---
 
 ## 3. Methods
 
-All source files are in the public GitHub repository: Arduino firmware in *`/firmware/`*, Python dashboard in *`/software/`*, and hardware files in *`/hardware/`*.
+All source files are in the public GitHub repository: the Arduino firmware in *`/code/Code_Arduino/`*, the Python dashboard in *`/code/Code_Python/`*, the Unity scene for the optional head-mounted display in *`/Gamification/Unity/`*, and the mechanical `.prt` files in *`/cad/`*.
 
 ### 3.1 System architecture
 
@@ -166,7 +166,7 @@ Each choice avoids a specific problem we hit (or expected to hit) with the obvio
 
 The frame is made of three 3D-printed parts in PLA: an upper-arm cuff, an elbow housing that carries the BLDC motor, and a forearm linkage that ends in a Velcro cuff. The motor's rotation axis sits exactly along the patient's elbow joint. This alignment matters: even a few degrees of misalignment puts a sideways torque on the wrist or shoulder during therapy.
 
-The AMT110 encoder mounts on the back of the motor shaft. The two IMUs clip onto the upper-arm cuff (`0x68`) and the forearm cuff (`0x69`). The Drake actuator sits on the inside of the forearm cuff, so its pulse couples directly to the skin. STEP files are in *`/cad/`*.
+The AMT110 encoder mounts on the back of the motor shaft. The two IMUs clip onto the upper-arm cuff (`0x68`) and the forearm cuff (`0x69`). The Drake actuator sits on the inside of the forearm cuff, so its pulse couples directly to the skin. The Siemens NX `.prt` files are in *`/cad/`*.
 
 #### Electrical wiring
 
@@ -433,7 +433,7 @@ To make sure the 3D view, the compensation monitor and the mirror-therapy overla
 
 Pressing one stores the per-IMU offsets and pushes them to every subsystem at the same time. If the compensation monitor is active, its session baseline is also reset.
 
-After tare, the dashboard streams the 3D pose to three places: the on-screen 3D stick figure, the mirror-therapy overlay (a translucent mirrored arm on the other side of the body), and an optional UDP stream on port 5005 to a Unity scene for use with a head-mounted display.
+After tare, the dashboard streams the 3D pose to three places: the on-screen 3D stick figure, the mirror-therapy overlay (a translucent mirrored arm on the other side of the body), and an optional UDP stream on port 5005 to a Unity scene (in *`/Gamification/Unity/`*) for use with a head-mounted display.
 
 ### 3.7 Vibrotactile feedback
 
@@ -448,7 +448,7 @@ A naive way of using this would be: keep the PWM on for as long as the arm is pa
 
 ### 3.8 Python dashboard
 
-The dashboard is built with **CustomTkinter** (windowing), **Matplotlib** (live graphs) and **pyserial** (link to the Arduino). The source is in *`/software/gui_main.py`*. It parses the structured ASCII stream from the Arduino (`POS`, `VEL`, `TRQ`, `IMU1`, `IMU2`, `STATE`) and shows nine tabs.
+The dashboard is built with **CustomTkinter** (windowing), **Matplotlib** (live graphs) and **pyserial** (link to the Arduino). The source is in *`/code/Code_Python/`*. It parses the structured ASCII stream from the Arduino (`POS`, `VEL`, `TRQ`, `IMU1`, `IMU2`, `STATE`) and shows nine tabs.
 
 | Tab | What it does |
 |---|---|

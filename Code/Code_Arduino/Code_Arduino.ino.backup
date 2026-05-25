@@ -1,0 +1,324 @@
+#include <ODriveUART.h>
+#include <Wire.h>
+
+HardwareSerial& odrive_serial = Serial1;
+ODriveUART odrive(odrive_serial);
+
+// ====================================================================
+//   1. HARDWARE LIMIETEN
+// ====================================================================
+const float OFFSET_NAAR_GESTREKT = -65.0f;  
+const float MAX_BUIGING_BEREIK   = 100.0f;  
+const float GRADEN_NAAR_TURNS    = 1.0f / 360.0f;
+
+const float VELOCITY_THRESHOLD      = 0.02f;  
+const float MAX_SAFE_VELOCITY       = 0.8f;   
+const float FILTER_ZWAARTE          = 0.80f;  
+const float MAX_KOPPEL_STAP         = 0.015f;
+const float BASIS_DAMPING           = 0.05f; 
+
+// ====================================================================
+//   2. I2C HARDWARE (IMU's & Haptic)
+// ====================================================================
+const int MPU_BOVENARM = 0x68;
+const int MPU_ONDERARM = 0x69;
+byte DRV = 0x5A;
+
+float imu1_hoek = 0.0f;
+float imu2_hoek = 0.0f;
+
+unsigned long laatste_haptic_tijd = 0;
+const unsigned long HAPTIC_COOLDOWN = 2500; 
+
+// ====================================================================
+//   3. LOGISCHE THERAPIE INSTELLINGEN
+// ====================================================================
+float ASSIST_TORQUE          = 0.60f;  
+float ASSIST_OPBOUW_FACTOR   = 1.0f;   
+float ASSIST_STREK_WEERSTAND = 0.40f;  
+float TRAINING_WEERSTAND     = 2.50f;  
+float VIRTUELE_VEER_STIJFHEID = 0.10f;  
+float VEILIGHEIDS_KOPPEL_MAX  = 1.50f;  
+
+float limiet_min = 0.0f;
+float limiet_max = 100.0f;
+float HAPTIC_KRACHT = 1.0f; 
+
+float gefilterde_snelheid = 0.0f;
+float huidig_koppel = 0.0f;
+unsigned long laatste_data_tijd = 0;
+
+enum SysteemStatus { WACHTEN_OP_INDEX, WACHTEN_OP_GESTREKT, NAAR_START_BEWEGEN, READY, THERAPIE_ACTIEF, SETTINGS_AANPASSEN };
+SysteemStatus status = WACHTEN_OP_INDEX;
+enum TherapieModus { ASSISTIVE, RESISTIVE, FREERIDE };
+TherapieModus huidige_modus = ASSISTIVE;
+
+float hardware_index_turns = 0.0f;
+float software_nul_turns   = 0.0f;
+float huidige_doel_turns   = 0.0f;
+
+void setup() {
+  odrive_serial.begin(115200);
+  Serial.begin(115200);
+  Wire.begin();
+  
+  while (!Serial); 
+
+  Wire.beginTransmission(MPU_BOVENARM);
+  Wire.write(0x6B); Wire.write(0x00);
+  Wire.endTransmission(true);
+  
+  Wire.beginTransmission(MPU_ONDERARM);
+  Wire.write(0x6B); Wire.write(0x00);
+  Wire.endTransmission(true);
+
+  // Zet Pin 13 klaar en initialiseer de DRV chip in PWM modus
+  pwm613configure();
+  initializeDRV2605();
+
+  while (odrive.getState() == AXIS_STATE_UNDEFINED) delay(100);
+}
+
+void loop() {
+  imu1_hoek = leesIMU(MPU_BOVENARM);
+  imu2_hoek = leesIMU(MPU_ONDERARM);
+
+  if (millis() - laatste_data_tijd > 100) {
+    float huidige_graden = 0.0f;
+    if (status >= READY) {
+      huidige_graden = (odrive.getFeedback().pos - software_nul_turns) * 360.0f;
+    }
+    Serial.print("POS:"); Serial.println(huidige_graden);
+    Serial.print("VEL:"); Serial.println(gefilterde_snelheid);
+    Serial.print("TRQ:"); Serial.println(huidig_koppel);
+    Serial.print("STATE:"); Serial.println(status);
+    Serial.print("IMU1:"); Serial.println(imu1_hoek);
+    Serial.print("IMU2:"); Serial.println(imu2_hoek);
+    
+    laatste_data_tijd = millis();
+  }
+
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    int dubbele_punt_index = input.indexOf(':');
+    String commando = input;
+    float waarde = 0.0f;
+    if (dubbele_punt_index != -1) {
+      commando = input.substring(0, dubbele_punt_index);
+      waarde = input.substring(dubbele_punt_index + 1).toFloat();
+    }
+
+    if (commando.equalsIgnoreCase("RESET")) softReset();
+    else if (commando.equalsIgnoreCase("CHANGE_SETTINGS")) {
+      status = SETTINGS_AANPASSEN;
+      schakelNaarPositionMode(); 
+      beweegVloeiend(odrive.getFeedback().pos, software_nul_turns, 1.5);
+      huidige_doel_turns = software_nul_turns;
+    } 
+    else if (commando.equalsIgnoreCase("SAVE_DONE") && status == SETTINGS_AANPASSEN) status = READY;
+    else if (commando.equalsIgnoreCase("MODE_ASSISTIVE")) huidige_modus = ASSISTIVE;
+    else if (commando.equalsIgnoreCase("MODE_RESISTIVE")) huidige_modus = RESISTIVE;
+    else if (commando.equalsIgnoreCase("MODE_FREERIDE")) huidige_modus = FREERIDE;
+    
+    else if (commando.equalsIgnoreCase("SET_LIM_MIN")) limiet_min = waarde;
+    else if (commando.equalsIgnoreCase("SET_LIM_MAX")) limiet_max = waarde;
+    else if (commando.equalsIgnoreCase("SET_A_TORQUE")) ASSIST_TORQUE = waarde;
+    else if (commando.equalsIgnoreCase("SET_A_FACTOR")) ASSIST_OPBOUW_FACTOR = waarde;
+    else if (commando.equalsIgnoreCase("SET_A_STREK"))  ASSIST_STREK_WEERSTAND = waarde;
+    else if (commando.equalsIgnoreCase("SET_T_WEERSTAND")) TRAINING_WEERSTAND = waarde;
+    else if (commando.equalsIgnoreCase("SET_VEER"))     VIRTUELE_VEER_STIJFHEID = waarde;
+    else if (commando.equalsIgnoreCase("SET_MAX_KOPPEL")) VEILIGHEIDS_KOPPEL_MAX = waarde;
+    else if (commando.equalsIgnoreCase("SET_HAPTIC")) HAPTIC_KRACHT = waarde;
+
+    else if (commando.equalsIgnoreCase("SET_ANGLE") && status >= READY && status != SETTINGS_AANPASSEN) {
+      schakelNaarPositionMode();
+      float veilige_hoek = waarde;
+      if (veilige_hoek < limiet_min) veilige_hoek = limiet_min;
+      if (veilige_hoek > limiet_max) veilige_hoek = limiet_max;
+      float doel_turns = software_nul_turns + (veilige_hoek * GRADEN_NAAR_TURNS);
+      beweegVloeiend(odrive.getFeedback().pos, doel_turns, 1.5);
+      huidige_doel_turns = doel_turns;
+      status = READY; 
+    }
+    else if (commando.equalsIgnoreCase("gestrekt") && status == WACHTEN_OP_GESTREKT) status = NAAR_START_BEWEGEN;
+    else if (commando.equalsIgnoreCase("start") && status == READY) {
+      schakelNaarTorqueMode();
+      status = THERAPIE_ACTIEF;
+    }
+    else if (commando.equalsIgnoreCase("stop")) {
+      schakelNaarPositionMode(); 
+      status = READY;
+    }
+  }
+
+  switch (status) {
+    case WACHTEN_OP_INDEX:
+      if (odrive.getState() == AXIS_STATE_IDLE) {
+        hardware_index_turns = odrive.getFeedback().pos;
+        huidige_doel_turns = hardware_index_turns;
+        status = WACHTEN_OP_GESTREKT;
+      }
+      break;
+
+    case NAAR_START_BEWEGEN:
+      schakelNaarPositionMode(); 
+      huidige_doel_turns = odrive.getFeedback().pos; 
+      {
+        float doel = hardware_index_turns + (OFFSET_NAAR_GESTREKT * GRADEN_NAAR_TURNS);
+        beweegVloeiend(huidige_doel_turns, doel, 2.0);
+        delay(200); 
+        software_nul_turns = doel;
+        huidige_doel_turns = doel;
+      }
+      status = READY;
+      break;
+
+    case THERAPIE_ACTIEF:
+      draaiTherapie();
+      break;
+      
+    case READY:
+    case WACHTEN_OP_GESTREKT:
+    case SETTINGS_AANPASSEN:
+      break;
+  }
+}
+
+void draaiTherapie() {
+  ODriveFeedback fb = odrive.getFeedback();
+  float graden = (fb.pos - software_nul_turns) * 360.0f;
+  gefilterde_snelheid = (FILTER_ZWAARTE * gefilterde_snelheid) + ((1.0f - FILTER_ZWAARTE) * fb.vel);
+
+  if (abs(fb.vel) > MAX_SAFE_VELOCITY) {
+    huidig_koppel = 0.0f; odrive.setTorque(0.0f); return;
+  }
+
+  // === HAPTISCHE FEEDBACK TRIGGER ===
+  if (graden <= limiet_min || graden >= limiet_max) {
+    if (millis() - laatste_haptic_tijd > HAPTIC_COOLDOWN) {
+      geefHaptischeTik(); 
+      laatste_haptic_tijd = millis();
+    }
+  }
+
+  float assist = 0.0f; float veer_koppel = 0.0f; float damping = 0.0f;
+
+  if (graden < limiet_min) veer_koppel = (limiet_min - graden) * VIRTUELE_VEER_STIJFHEID; 
+  else if (graden > limiet_max) veer_koppel = (limiet_max - graden) * VIRTUELE_VEER_STIJFHEID;
+
+  if (graden >= limiet_min && graden <= limiet_max) {
+    if (huidige_modus == ASSISTIVE) {
+      if (gefilterde_snelheid > VELOCITY_THRESHOLD) {
+        assist = (gefilterde_snelheid - VELOCITY_THRESHOLD) * ASSIST_OPBOUW_FACTOR;
+        if (assist > ASSIST_TORQUE) assist = ASSIST_TORQUE;
+        damping = -BASIS_DAMPING * gefilterde_snelheid; 
+      } 
+      else if (gefilterde_snelheid < -VELOCITY_THRESHOLD) {
+        assist = 0.0f; damping = -ASSIST_STREK_WEERSTAND * gefilterde_snelheid; 
+      } 
+      else { assist = 0.0f; damping = -BASIS_DAMPING * gefilterde_snelheid; }
+    } 
+    else if (huidige_modus == RESISTIVE) {
+      assist = 0.0f; 
+      if (abs(gefilterde_snelheid) > VELOCITY_THRESHOLD) damping = -TRAINING_WEERSTAND * gefilterde_snelheid; 
+      else damping = -BASIS_DAMPING * gefilterde_snelheid;
+    }
+    else if (huidige_modus == FREERIDE) { assist = 0.0f; damping = 0.0f; }
+  }
+
+  float doel_koppel = assist + damping + veer_koppel;
+  if (doel_koppel > VEILIGHEIDS_KOPPEL_MAX) doel_koppel = VEILIGHEIDS_KOPPEL_MAX;
+  if (doel_koppel < -VEILIGHEIDS_KOPPEL_MAX) doel_koppel = -VEILIGHEIDS_KOPPEL_MAX;
+
+  if (doel_koppel > huidig_koppel + MAX_KOPPEL_STAP) huidig_koppel += MAX_KOPPEL_STAP;
+  else if (doel_koppel < huidig_koppel - MAX_KOPPEL_STAP) huidig_koppel -= MAX_KOPPEL_STAP;
+  else huidig_koppel = doel_koppel;
+
+  odrive.setTorque(huidig_koppel);
+}
+
+// ====================================================================
+//   I2C / IMU SNELLE LEESFUNCTIE 
+// ====================================================================
+float leesIMU(byte adres) {
+  Wire.beginTransmission(adres);
+  Wire.write(0x3B);
+  Wire.endTransmission(false);
+  Wire.requestFrom((int)adres, 6, (int)true);
+  
+  float AccX = (Wire.read() << 8 | Wire.read()) / 16384.0;
+  float AccY = (Wire.read() << 8 | Wire.read()) / 16384.0;
+  float AccZ = (Wire.read() << 8 | Wire.read()) / 16384.0;
+  
+  return (atan2(AccY, sqrt(AccX * AccX + AccZ * AccZ)) * 180.0) / PI;
+}
+
+// ====================================================================
+//   ODRIVE / CONTROL FUNCTIES
+// ====================================================================
+void softReset() {
+  odrive.setState(AXIS_STATE_IDLE); 
+  hardware_index_turns = 0.0f; software_nul_turns = 0.0f; huidige_doel_turns = 0.0f;
+  gefilterde_snelheid = 0.0f; huidig_koppel = 0.0f; status = WACHTEN_OP_INDEX; 
+}
+void schakelNaarPositionMode() {
+  odrive.setPosition(odrive.getFeedback().pos);
+  delay(10); odrive_serial.println("w axis0.controller.config.control_mode 3"); delay(10);
+  odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
+}
+void schakelNaarTorqueMode() {
+  odrive.setTorque(0.0f);
+  delay(10); odrive_serial.println("w axis0.controller.config.control_mode 1"); delay(10);
+  odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
+}
+void beweegVloeiend(float start, float eind, float duur) {
+  int stappen = 100;
+  for (int i = 0; i <= stappen; i++) {
+    float t = (float)i / stappen; float factor = t * t * (3.0f - 2.0f * t);
+    odrive.setPosition(start + (eind - start) * factor); delay((duur * 1000) / stappen);
+  }
+}
+
+// ====================================================================
+//   DRV2605L HAPTIC BIBLIOTHEEK (PWM MODUS OP D13)
+// ====================================================================
+void pwm613configure() {
+  TCCR4A = 0; TCCR4B = 5; TCCR4C = 0; TCCR4D = 0;
+  PLLFRQ = (PLLFRQ & 0xCF) | 0x30;
+  OCR4C = 255;
+  
+  // Maak Pin 13 gereed voor PWM!
+  OCR4A = 0; 
+  DDRC |= _BV(7); 
+  TCCR4A = 0x82; 
+}
+
+void initializeDRV2605() {
+  // Haal DRV uit standby
+  Wire.beginTransmission(DRV); Wire.write(0x01); Wire.write(0x00); Wire.endTransmission();
+  
+  // Zet LRA (Drake) modus aan in het Feedback Register
+  Wire.beginTransmission(DRV); Wire.write(0x1A); Wire.write(0xB6); Wire.endTransmission(); 
+  
+  // Kies Library 6 (LRA)
+  Wire.beginTransmission(DRV); Wire.write(0x03); Wire.write(0x06); Wire.endTransmission();
+  
+  // BELANGRIJKSTE: Vertel hem dat we via de PWM pin (D13) willen sturen! (Mode 3)
+  Wire.beginTransmission(DRV); Wire.write(0x01); Wire.write(0x03); Wire.endTransmission();
+}
+
+void geefHaptischeTik() {
+  // HAPTIC_KRACHT komt uit de Python slider (bijv 0.5 voor 50%, of 1.0 voor 100%)
+  int max_pwm = 255 * HAPTIC_KRACHT; 
+  if(max_pwm > 255) max_pwm = 255;
+
+  // We gooien de PWM op D13 VOL OPEN
+  OCR4A = max_pwm; 
+  
+  // Geef de motor 50 milliseconden om maximaal uit te zwaaien en te trillen
+  delay(50);
+  
+  // Zet de spanning er direct weer af
+  OCR4A = 0; 
+}
