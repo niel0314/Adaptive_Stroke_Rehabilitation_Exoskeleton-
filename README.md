@@ -410,7 +410,7 @@ This is the most involved part of the system. The goal is simple: detect when th
 
 The dashboard turns this into three states using two thresholds: below 25&nbsp;% is **GOOD** (green), between 25&nbsp;% and 40&nbsp;% is **WARNING** (amber), and above 40&nbsp;% is **COMPENSATION** (red). Both thresholds are scaled together by the "Sensitivity" slider, so the therapist can make the device stricter or more lenient per patient.
 
-The chart at the bottom of the tab shows one coloured bar per completed reach, with the score written above each bar. An export button saves the whole sample log as a CSV file.
+The chart at the bottom of the tab shows one coloured bar per completed reach, with the score written above each bar. An "Export Report" button saves the session as a PNG image with three panels: the per-reach bar chart at the top, the shoulder elevation over time, and the elbow flexion over time. A header above the panels lists the session duration, the reach count, and the per-level counts.
 
 #### 3.6.2 Job 2 - tracking the 3D arm pose
 
