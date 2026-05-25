@@ -44,7 +44,7 @@ May 2026
 
 ## 1. Introduction
 
-Here you see the assembled HapticElbow exoskeleton worn on a user's arm.
+The image below shows our final HapticElbow prototype, an open-source elbow exoskeleton aimed at stroke rehabilitation. You can see the upper-arm cuff that carries the brushless motor and the AMT110 encoder, the forearm cuff with the Drake vibration unit on the inside, and the two MPU-6050 IMU sensors that track the arm's orientation. The rest of this document walks through how each part was chosen and how the firmware, sensors and dashboard work together as one system.
 
 ![The HapticElbow exoskeleton worn on a user's arm](docs/hapticelbow.png)
 
