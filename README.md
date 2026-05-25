@@ -97,7 +97,7 @@ All hardware, firmware and software is released openly. The full prototype costs
 
 ## 2. Supplies - Bill of materials
 
-CAD files for the printed parts are in *`/hardware/cad/`*. **Estimated total prototype cost: approximately €540.**
+CAD files for the printed parts are in *`/cad/`*. **Estimated total prototype cost: approximately €540.**
 
 ### 2.1 Actuation and motor control
 
