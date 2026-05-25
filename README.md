@@ -44,6 +44,10 @@ May 2026
 
 ## 1. Introduction
 
+Here you see the assembled HapticElbow exoskeleton worn on a user's arm.
+
+![The HapticElbow exoskeleton worn on a user's arm](docs/hapticelbow.png)
+
 ### 1.1 Why robot-assisted training is needed
 
 Stroke is one of the largest causes of long-term motor disability worldwide. The World Health Organization estimates that around 15&nbsp;million people suffer a stroke every year, and roughly one in three survivors is left with permanent impairment [[1]](#7-references). Many of those survivors lose control over the proximal arm, which makes basic daily tasks like reaching, lifting and self-care very difficult.
@@ -172,46 +176,17 @@ The AMT110 encoder mounts on the back of the motor shaft. The two IMUs clip onto
 
 All inter-board connections sit on a small piece of perfboard with the wires soldered in place. We did not design a custom PCB. The Arduino plugs into pin headers so we can lift it off without de-soldering, and the IMU and Drake modules connect through pluggable headers. Moving from the breadboard prototype to a soldered board got rid of the loose-contact and noise problems we had earlier.
 
-The full electrical schematic is shown below.
+Here you see the full electrical schematic of the system.
 
-![Electrical schematic of the HapticElbow system](docs/electrical_schematic.png)
+![Electrical schematic of the HapticElbow](docs/elektrisch_schema.png)
 
-The connections in block form:
+Here you see the same wiring as it is physically laid out on the board, drawn in Fritzing. This is the layout that was followed when soldering the perfboard.
 
-```
-         +------------------+
-   230 V | Safety switch    |
-   mains | with E-stop      |   pressing the red button cuts
-         +--------+---------+   power to the PSU, so the
-                  |              motor becomes back-drivable
-                  v
-         +------------------+
-         | Mean Well        |
-         | 24 V / 13.4 A    |
-         | PSU              |
-         +--------+---------+
-                  |
-                  v  24 V DC
-         +------------------+         +------------------+
-         | ODrive S1        | <-----> | Arduino Micro    |
-         |                  |  UART   |                  |
-         |   GPIO 7  TX  ---|---------|--- D0  (RX1)     |
-         |   GPIO 8  RX  ---|---------|--- D1  (TX1)     |
-         +--------+---------+ 115200  +--------+---------+
-                  |                            |
-                  v                            | USB serial
-              BLDC motor                       | to dashboard
-              + AMT110                         |
-              encoder
+![Wiring layout in Fritzing](docs/wiring_schema.png)
 
-         I²C bus on the Arduino (pin 2 = SDA, pin 3 = SCL)
-              |
-              +--- MPU-6050 #1  upper arm   (address 0x68)
-              +--- MPU-6050 #2  forearm     (address 0x69)
-              +--- DRV2605L     haptic drv  (address 0x5A)
+Here you see the same system summarised as a block diagram. It shows how power and signals flow between the parts, without the electrical detail.
 
-         Arduino D13  --(PWM)-->  DRV2605L IN/TRIG  -->  Drake LRA
-```
+![Block diagram of the HapticElbow](docs/block_schema.png)
 
 ### 3.4 ODrive configuration
 
