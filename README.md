@@ -130,7 +130,7 @@ CAD files for the printed parts are in *`/cad/`*. **Estimated total prototype co
 
 | Component                              | Description                                                                                              | Source               | Cost (€) |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
-| 3D-printed exoskeleton frame           | Self-designed upper-arm cuff, elbow housing, motor bracket and forearm linkage. PLA. STEP files in *`/hardware/cad/`*. | Self-designed        | 60       |
+| 3D-printed exoskeleton frame           | Self-designed upper-arm cuff, elbow housing, motor bracket and forearm linkage. PLA. STEP files in *`/cad/`*. | Self-designed        | 60       |
 | Fasteners + Velcro straps              | M3/M4 screws and 25&nbsp;mm Velcro for patient attachment.                                               | Local hardware store | 12       |
 
 ---
@@ -166,7 +166,7 @@ Each choice avoids a specific problem we hit (or expected to hit) with the obvio
 
 The frame is made of three 3D-printed parts in PLA: an upper-arm cuff, an elbow housing that carries the BLDC motor, and a forearm linkage that ends in a Velcro cuff. The motor's rotation axis sits exactly along the patient's elbow joint. This alignment matters: even a few degrees of misalignment puts a sideways torque on the wrist or shoulder during therapy.
 
-The AMT110 encoder mounts on the back of the motor shaft. The two IMUs clip onto the upper-arm cuff (`0x68`) and the forearm cuff (`0x69`). The Drake actuator sits on the inside of the forearm cuff, so its pulse couples directly to the skin. STEP files are in *`/hardware/cad/`*.
+The AMT110 encoder mounts on the back of the motor shaft. The two IMUs clip onto the upper-arm cuff (`0x68`) and the forearm cuff (`0x69`). The Drake actuator sits on the inside of the forearm cuff, so its pulse couples directly to the skin. STEP files are in *`/cad/`*.
 
 #### Electrical wiring
 
