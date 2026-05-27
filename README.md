@@ -5,8 +5,7 @@
 *B-KUL-T4lMD2 · Haptic Interfaces Experience*
 
 **Authors:**
-Niel Boon
-Senne Peeters
+Senne Peeters, Niel Boon
 
 **Institution:**
 KU Leuven · Group T · Department of Mechanical Engineering
