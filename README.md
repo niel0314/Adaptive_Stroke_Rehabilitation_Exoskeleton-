@@ -5,7 +5,8 @@
 *B-KUL-T4lMD2 · Haptic Interfaces Experience*
 
 **Authors:**
-Senne Peeters, Niel Boon
+Niel Boon
+Senne Peeters
 
 **Institution:**
 KU Leuven · Group T · Department of Mechanical Engineering
@@ -43,13 +44,13 @@ May 2026
 
 ## 1. Introduction
 
-The image below shows our final HapticElbow prototype, an open-source elbow exoskeleton aimed at stroke rehabilitation. You can see the upper-arm cuff that carries the brushless motor and the AMT110 encoder, the forearm cuff with the Drake vibration unit on the inside, and the two MPU-6050 IMU sensors that track the arm's orientation. The rest of this document walks through how each part was chosen and how the firmware, sensors and dashboard work together as one system.
+The image below shows our final HapticElbow prototype, an open-source elbow exoskeleton aimed at stroke rehabilitation. You can see the upper-arm cuff that carries the brushless motor and the AMT10E2-V encoder, the forearm cuff with the Drake vibration unit on the inside, and the two MPU-6050 IMU sensors that track the arm's orientation. The rest of this document walks through how each part was chosen and how the firmware, sensors and dashboard work together as one system.
 
 ![The HapticElbow exoskeleton worn on a user's arm](docs/hapticelbow.png)
 
 ### 1.1 Why robot-assisted training is needed
 
-Stroke is one of the largest causes of long-term motor disability worldwide. The World Health Organization estimates that around 15&nbsp;million people suffer a stroke every year, and roughly one in three survivors is left with permanent impairment [[1]](#7-references). Many of those survivors lose control over the proximal arm, which makes basic daily tasks like reaching, lifting and self-care very difficult.
+Stroke is one of the largest causes of long-term disability worldwide. Each year around 12&nbsp;million people have a stroke, and many survivors are left with a lasting motor impairment [[1]](#7-references). A large share of them lose control over the proximal arm, which makes basic daily tasks like reaching, lifting and self-care very difficult.
 
 The good news is that the brain can rewire itself. This is called neuroplasticity. With enough repeated, voluntary, task-specific practice, new connections form and lost function can come back at least partially [[2]](#7-references).
 
@@ -60,7 +61,7 @@ That is the reason robots are useful in rehabilitation. A robot can support thou
 Motor learning depends on feedback. For a rehabilitation device, two kinds of touch-based feedback are relevant:
 
 - **Kinaesthetic feedback** - forces transmitted through the structure of the device. Our system uses a back-drivable brushless motor in current (torque) mode. That means the motor produces a smooth, soft push, and never locks the joint in a stiff position.
-- **Vibrotactile feedback** - short skin vibrations that signal events. Vibrations are useful for things like "you have reached the limit" or "good job". Bark and colleagues showed that vibrotactile cues during arm tasks reduce path errors and speed up motor learning, because the patient does not have to look at a screen to receive the information [[5]](#7-references).
+- **Vibrotactile feedback** - short skin vibrations that signal events. Vibrations are useful for things like "you have reached the limit" or "good job". Bark and colleagues showed that vibrotactile cues at the arm can carry this kind of guidance information through the skin, so the patient does not have to watch a screen to receive it [[5]](#7-references).
 
 ### 1.3 The compensation problem
 
@@ -108,7 +109,7 @@ CAD files for the printed parts are in *`/cad/`* (Siemens NX `.prt` format). **E
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
 | ODrive S1                              | Single-axis motor controller, 12-50&nbsp;V input, isolated UART.                                         | ODrive Robotics      | 155      |
 | BLDC motor (D5312s 330KV)              | Brushless outrunner motor, smooth at low speed, fully back-drivable.                                     | ODrive Robotics      | 85       |
-| AMT110 incremental encoder             | Reads the motor angle. Configurable resolution via DIP switches, gives one index pulse per revolution.   | Digi-Key             | 30       |
+| AMT10E2-V incremental encoder             | Reads the motor angle. Configurable resolution via DIP switches, gives one index pulse per revolution.   | Digi-Key             | 30       |
 | Mean Well RSP-320-24 PSU               | 24&nbsp;V / 13.4&nbsp;A enclosed power supply, fits inside the ODrive's 12-50&nbsp;V input range.        | Farnell              | 65       |
 | 230&nbsp;V safety switch with E-stop   | Single-phase switch with a red mushroom-button on the mains feed.                                        | Amazon DE            | 25       |
 
@@ -169,7 +170,7 @@ Each choice avoids a specific problem we hit (or expected to hit) with the obvio
 
 The frame is made of three 3D-printed parts in PLA: an upper-arm cuff, an elbow housing that carries the BLDC motor, and a forearm linkage that ends in a Velcro cuff. The motor's rotation axis sits exactly along the patient's elbow joint. This alignment matters: even a few degrees of misalignment puts a sideways torque on the wrist or shoulder during therapy.
 
-The AMT110 encoder mounts on the back of the motor shaft. The two IMUs clip onto the upper-arm cuff (`0x68`) and the forearm cuff (`0x69`). The Drake actuator sits on the inside of the forearm cuff, so its pulse couples directly to the skin. The Siemens NX `.prt` files are in *`/cad/`*.
+The AMT10E2-V encoder mounts on the back of the motor shaft. The two IMUs clip onto the upper-arm cuff (`0x68`) and the forearm cuff (`0x69`). The Drake actuator sits on the inside of the forearm cuff, so its pulse couples directly to the skin. The Siemens NX `.prt` files are in *`/cad/`*.
 
 #### Electrical wiring
 
@@ -221,7 +222,7 @@ This UART is **galvanically isolated** on the ODrive S1. The signal pins on the 
 
 #### 3.4.4 Persistent calibration with the encoder index
 
-The AMT110 encoder emits one "index pulse" per full motor revolution. That pulse is the absolute reference: every time the ODrive sees it, it knows exactly which angle the motor is at. We do the motor and encoder calibration once with the motor uncoupled, then mark it as `pre_calibrated` so it survives every reboot.
+The AMT10E2-V encoder emits one "index pulse" per full motor revolution. That pulse is the absolute reference: every time the ODrive sees it, it knows exactly which angle the motor is at. We do the motor and encoder calibration once with the motor uncoupled, then mark it as `pre_calibrated` so it survives every reboot.
 
 ```python
 odrv0.axis0.encoder.config.use_index                  = True
@@ -346,20 +347,16 @@ The two IMUs do two different jobs. They are not backups for each other.
 
 This is the most involved part of the system. The goal is simple: detect when the patient is "cheating" by lifting the shoulder instead of bending the elbow. The hard part is doing it without triggering false alarms during normal motion.
 
-**What is a reach?** We do not look at the data continuously. Instead we split the patient's movement into individual *reaches*. A reach is one outgoing motion (think of reaching for a cup of coffee). A reach starts when the combined motion of the motor and the upper-arm IMU goes above 8°/s for at least 0.2 seconds, and ends when the combined motion drops below 4°/s for 0.5 seconds. The numbers are chosen this way:
+**A continuous score, not a verdict afterwards.** The monitor runs all the time. About ten times per second it looks back over the **last 1.5 seconds** of motion and recomputes a compensation score from 0 to 100. We use this short "sliding window" because an earlier version that waited for a whole movement to finish reacted too slowly: during one long continuous motion it kept giving credit for the elbow bend at the start and missed a shoulder lift later on. By only ever looking at the most recent 1.5 seconds, the monitor judges what the patient is doing right now.
 
-- 8°/s as start threshold sits above natural noise and small involuntary tremor.
-- 4°/s as end threshold is lower than the start threshold, so we do not bounce in and out of "reach" near the boundary.
-- 0.2 second start delay filters out single noise spikes.
-- 0.5 second end delay makes sure we do not end a reach during a slow part of the motion.
+**What it looks at.** Inside that window it tracks two quantities:
 
-**What we measure per reach.** Within each reach we keep track of three things:
+- **Shoulder rise** - how far the upper arm has gone up. This is the larger of two numbers: how much it rose within the window, and how far it currently sits above the resting baseline captured when "Start Monitoring" was pressed. Taking the larger of the two means that a *held* raised position keeps being flagged, even after the upward motion itself has scrolled out of the window.
+- **Elbow use** - how much the elbow is contributing. Again the larger of two numbers: how much the elbow *moved* within the window, and how far it is *currently bent*. The second part matters because a patient who bends the elbow first and then raises the shoulder (a normal hand-to-head motion) is still using the elbow, even though it is not moving at that moment.
 
-- `max_shoulder_rise` - how high the upper-arm IMU has risen during the reach (compared to where it was when we pressed "Start Monitoring").
-- `max_elbow_excursion` - how far the elbow has bent during the reach (compared to where it was at the start of the reach).
-- The net change in upper-arm angle at the end of the reach, to know whether the patient was *raising* or *lowering* the arm overall.
+One extra guard sits in front of this. While the motor is turning quickly, the upper-arm reading is briefly held steady, because a fast forearm swing throws a small false tilt into the accelerometer that would otherwise look like a shoulder lift.
 
-**How we score the reach.** Three ideas from the clinical literature (see §1.3) shape the scoring. We explain each one in plain words first, then put them together.
+**How the score is built.** Three ideas from the clinical literature (see §1.3) shape it. We explain each one in plain words first, then put them together.
 
 ***Idea 1 - the expected balance depends on the zone the arm is in.*** When the arm is low (hand-to-mouth area), the shoulder should not move much: the elbow does the work. In the middle zone (normal forward reaching), the shoulder and elbow share the motion roughly equally. When the arm is above the horizontal, the shoulder is near the end of its anatomical range, so the elbow has to take over [[8]](#7-references). We express this as an "expected elbow contribution":
 
@@ -371,20 +368,22 @@ This is the most involved part of the system. The goal is simple: detect when th
 
 ***Idea 2 - the elbow always wobbles a little.*** Even when the patient is not actively bending the elbow, the joint naturally rotates 1 to 3° during any arm motion. We subtract the first 3° of elbow movement before we count it, so background wobble cannot be mistaken for real elbow use.
 
-***Idea 3 - the way back is not a compensation.*** Every reach ends with a motion back to rest. If we scored that part too, we would always trigger a false alarm there. So at the end of the reach, we check whether the upper arm ended up below where it started. If it did, we treat the reach as a return motion and do not score it [[9]](#7-references).
+***Idea 3 - the way back is not a compensation.*** Every motion towards a target is followed by a motion back to rest. If we scored that return too, it would raise a false alarm every time. So whenever the upper arm is, on balance, moving *down* across the window, the score is forced to zero [[9]](#7-references).
 
-***Putting it together.*** The final score is built in three steps:
+***Putting it together.*** The score is built in three steps:
 
-1. Take the shoulder rise. Subtract 5° as a free margin (small natural sway should not count). Divide by 40° (a typical full reach) and convert to a percentage. This gives the "raw shoulder alarm" between 0 and 100&nbsp;%.
-2. Take the elbow excursion. Subtract the 3° wobble. Compare what is left to the expected elbow contribution from Idea&nbsp;1. If the elbow met or exceeded the expectation, the patient gets full *credit*.
+1. Take the shoulder rise. Subtract 5° as a free margin (small natural sway should not count). Divide by 40° (a typical full reach) and turn it into a percentage. This gives the "raw shoulder alarm" between 0 and 100&nbsp;%.
+2. Take the elbow use. Subtract the 3° wobble. Compare what is left to the expected elbow contribution from Idea&nbsp;1. If the elbow meets or exceeds the expectation, the patient gets full *credit*.
 3. The final score is the raw shoulder alarm reduced by the elbow credit. So:
    - Big shoulder rise with no elbow use - high score, alarm goes off.
    - Big shoulder rise with matching elbow use - low score, no alarm. This is just a normal reach.
    - Small motion either way - low score.
 
-The dashboard turns this into three states using two thresholds: below 25&nbsp;% is **GOOD** (green), between 25&nbsp;% and 40&nbsp;% is **WARNING** (amber), and above 40&nbsp;% is **COMPENSATION** (red). Both thresholds are scaled together by the "Sensitivity" slider, so the therapist can make the device stricter or more lenient per patient.
+**Holding the peak.** A quick cheat followed by an immediate return to rest could flash by before anyone notices. So the score shown on screen holds its highest value for 1.5 seconds and then fades back down over another second, instead of dropping the instant the motion stops. A short compensation therefore stays on screen long enough for the therapist to see it.
 
-The chart at the bottom of the tab shows one coloured bar per completed reach, with the score written above each bar. An "Export Report" button saves the session as a PNG image with three panels: the per-reach bar chart at the top, the shoulder elevation over time, and the elbow flexion over time. A header above the panels lists the session duration, the reach count, and the per-level counts.
+The dashboard turns the score into three states using two thresholds: below 25&nbsp;% is **GOOD** (green), between 25&nbsp;% and 40&nbsp;% is **WARNING** (amber), and above 40&nbsp;% is **COMPENSATION** (red). Both thresholds are scaled together by the "Sensitivity" slider, so the therapist can make the device stricter or more lenient per patient.
+
+For the history chart and the session counts, the dashboard also groups the motion into separate *reaches*, where one reach is a single stretch of continuous movement. The chart at the bottom of the tab draws one coloured bar per reach, labelled with the highest score reached during it. An "Export Report" button saves the session as a PNG image with three panels: the per-reach bar chart at the top, the shoulder elevation over time, and the elbow flexion over time. A header above the panels lists the session duration, the reach count, and the per-level counts.
 
 #### 3.6.2 Job 2 - tracking the 3D arm pose
 
@@ -431,7 +430,7 @@ The dashboard is built with **CustomTkinter** (windowing), **Matplotlib** (live 
 | 3D arm simulation | Live 3D stick figure of the patient, with an optional "Mirror Therapy" toggle that draws a translucent mirrored arm on the other side of the body [[11]](#7-references). |
 | Position control | Preset and slider-based target angles, used for setup. |
 | ROM test | Switches to free-ride mode and records the patient's minimum and maximum reachable angle. |
-| Anti-Compensation | The per-reach monitor of §3.6.1, with status panel, live score, the "SHOULDER ↑" and "ELBOW Δ" mini-metrics, session statistics, and the per-reach history bar chart. |
+| Anti-Compensation | The real-time monitor of §3.6.1, with status panel, live score, the "SHOULDER ↑" and "ELBOW Δ" mini-metrics, session statistics, and the per-reach history bar chart. |
 | Game Mode | Two gamified modes: "Catch Blocks" (a hold-position task) and "Ghost Arm (Rhythm)" (a rhythm task with adjustable tempo). |
 | Live Graphs | Angle, velocity, acceleration and torque over time. |
 | ODrive Tuning | Runtime PID adjustment, see §3.4.6. |
@@ -446,7 +445,7 @@ The two tare buttons ("Tare Vertical" and "Tare Horizontal") live in the header 
 - **2D versus 3D IMU formula.** Our first IMU implementation used `atan2(Y, Z)`, which gave nonsense near 90° of tilt. Switching to the 3D form (§3.6.2) made the angle reliable across the full working range.
 - **Virtual-spring stiffness.** Initially set to 0.3&nbsp;Nm/°, the soft limit felt like a hard wall and bounced the arm out of range. 0.1&nbsp;Nm/° paired with the vibration pulse was a much more natural cue.
 - **Encoder-index placement.** In one assembly attempt, the encoder index ended up just outside the operational arc. The ODrive could never find it at boot. Re-clocking the motor shaft so the index sits around 50° of flexion solved it.
-- **Compensation algorithm went through three generations.** The first version was a sliding-window detector on raw IMU samples. It triggered alarms constantly and required the user to "pump down" the score with extra good reaches. The second version used a geometric coherence test (`imu2 ≈ imu1 + motor`), but the accelerometer-derived tilt is corrupted by dynamic motion, so it produced false alarms on clean elbow flexions. The current reach-based detector (§3.6.1) is both more robust and easier to interpret.
+- **Compensation algorithm went through three generations.** The first version watched the raw IMU samples and raised an alarm whenever the shoulder drifted up; it fired almost constantly and forced the user to "pump down" the score with extra good moves. The second version used a geometric coherence test (`imu2 ≈ imu1 + motor`), but the accelerometer-derived tilt is corrupted by dynamic motion, so it produced false alarms on clean elbow flexions. The current continuous, window-based detector (§3.6.1) is both more robust and easier to interpret.
 - **Soft start at therapy activation.** Without the soft start phase (§3.5.5), the first impedance command produced an audible mechanical kick. Splitting the activation into a damping-only phase followed by a smooth ramp got rid of it.
 - **SPARC smoothness metric was removed.** We briefly experimented with a Spectral Arc Length display as a smoothness marker. It is well-validated for discrete reaches, but proved unreliable when applied to a continuous sliding window over mixed motion/rest data. We replaced it with the per-reach compensation chart, which is also a smoothness proxy by construction.
 
@@ -460,7 +459,7 @@ The velocity-triggered assist law (§3.5.2) makes the device behave like a coope
 
 Two late additions turned out to be more important than expected. The soft start phase (§3.5.5) eliminated the audible kick at the moment of START, which would otherwise have been the very first thing the patient experienced. The vibration suppression term (§3.5.8) made the unloaded mechanism quiet during demonstrations. Neither was in the original design; both came out of real bench testing.
 
-The compensation monitor reliably flagged deliberate shoulder-lift cheats (10° or more during attempted flexion) and stayed quiet during clean elbow movements with the upper arm held still. The combination of zone-based ratios, wobble subtraction and direction-aware finalisation is what gives this behaviour. Without the 3° wobble subtraction (§3.6.1) the algorithm would flag normal incidental elbow rotation. Without the direction-aware finalisation it would trigger every time the arm is lowered back to rest. These details are not glamorous, but they are what makes the difference between a noisy detector and a useful one.
+The compensation monitor reliably flagged deliberate shoulder-lift cheats (10° or more during attempted flexion) and stayed quiet during clean elbow movements with the upper arm held still. The combination of zone-based ratios, wobble subtraction and the direction check is what gives this behaviour. Without the 3° wobble subtraction (§3.6.1) the algorithm would flag normal incidental elbow rotation. Without the direction check it would trigger every time the arm is lowered back to rest. These details are not glamorous, but they are what makes the difference between a noisy detector and a useful one.
 
 ### 4.2 Constraints and observed limitations
 
@@ -476,7 +475,7 @@ The compensation monitor reliably flagged deliberate shoulder-lift cheats (10° 
 
 ### 5.1 Summary
 
-HapticElbow is a low-cost, open-source elbow exoskeleton for upper-limb neurorehabilitation. Its main technical contribution is a velocity-triggered proportional assist law, implemented with current-mode FOC on the ODrive S1, combined with a dual-IMU subsystem that simultaneously detects shoulder compensation and reconstructs the 3D arm pose. The compensation detector is a per-reach evaluator with ratio, wobble and zone modulation, grounded in the clinical kinematic literature [[7]](#7-references), [[8]](#7-references), [[9]](#7-references). Two safety additions, the soft start phase and the vibration suppression term, make the device comfortable to use even outside ideal lab conditions. Vibrotactile soft-limit alerts through a Drake LRA, a non-blocking Arduino firmware and a Python dashboard with gamified modes and a mirror-therapy overlay complete the system. The total cost is about €540 and every artefact needed to rebuild the device is in this repository.
+HapticElbow is a low-cost, open-source elbow exoskeleton for upper-limb neurorehabilitation. Its main technical contribution is a velocity-triggered proportional assist law, implemented with current-mode FOC on the ODrive S1, combined with a dual-IMU subsystem that simultaneously detects shoulder compensation and reconstructs the 3D arm pose. The compensation detector is a continuous, window-based monitor with ratio, wobble and zone modulation, grounded in the clinical kinematic literature [[7]](#7-references), [[8]](#7-references), [[9]](#7-references). Two safety additions, the soft start phase and the vibration suppression term, make the device comfortable to use even outside ideal lab conditions. Vibrotactile soft-limit alerts through a Drake LRA, a non-blocking Arduino firmware and a Python dashboard with gamified modes and a mirror-therapy overlay complete the system. The total cost is about €540 and every artefact needed to rebuild the device is in this repository.
 
 ### 5.2 Future work
 
@@ -491,12 +490,12 @@ HapticElbow is a low-cost, open-source elbow exoskeleton for upper-limb neuroreh
 
 - Never use `delay()` inside a robot control loop. A 10&nbsp;ms block is enough to stall the ODrive serial channel.
 - Drive the LRA through the DRV2605L in LRA-mode with hardware-timed PWM. Software bit-banging produces barely perceptible vibration.
-- The AMT110 encoder-index location is a mechanical design constraint. Verify that the index sits inside the operational arc before final assembly.
+- The AMT10E2-V encoder-index location is a mechanical design constraint. Verify that the index sits inside the operational arc before final assembly.
 - Use the 3D gravity-vector form of the IMU tilt angle from day one. The 2D form fails near 90° and the failure looks like a glitch rather than a singularity.
 - Separate the therapy controller from the safety guards. The hard limits (velocity ceiling, torque clip, rate limit, vibration suppression) must run regardless of which therapy mode is active.
 - Ground rehabilitation algorithms in published clinical kinematics, not in ad-hoc heuristics. Our compensation detector needed three redesigns before the literature-anchored approach (§3.6.1) became stable and interpretable.
 - Add a soft start phase to any actively driven physical-interaction robot. The patient's body is never as rigidly coupled as the bench test suggests.
-- An absolute encoder would be a better choice than the AMT110 incremental encoder for this application. It would remove the index-search phase entirely.
+- An absolute encoder would be a better choice than the AMT10E2-V incremental encoder for this application. It would remove the index-search phase entirely.
 
 ---
 
@@ -535,7 +534,7 @@ HapticElbow is a low-cost, open-source elbow exoskeleton for upper-limb neuroreh
 
 ## 7. References
 
-[1] World Health Organization, "The top 10 causes of death," Geneva, Switzerland, Dec. 2020. [Online]. Available: https://www.who.int/news-room/fact-sheets/detail/the-top-10-causes-of-death
+[1] V. L. Feigin et al., "World Stroke Organization (WSO): Global Stroke Fact Sheet 2022," *Int. J. Stroke*, vol. 17, no. 1, pp. 18-29, Jan. 2022, doi: [10.1177/17474930211065917](https://doi.org/10.1177/17474930211065917).
 
 [2] J. A. Kleim and T. A. Jones, "Principles of experience-dependent neural plasticity: Implications for rehabilitation after brain damage," *J. Speech Lang. Hear. Res.*, vol. 51, no. 1, pp. S225-S239, Feb. 2008, doi: [10.1044/1092-4388(2008/018)](https://doi.org/10.1044/1092-4388(2008/018)).
 
