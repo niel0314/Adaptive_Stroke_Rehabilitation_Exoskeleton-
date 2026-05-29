@@ -558,4 +558,4 @@ HapticElbow is a low-cost, open-source elbow exoskeleton for upper-limb neuroreh
 
 ---
 
-*This README documents the complete design and implementation of HapticElbow. All hardware files, firmware and software are released under the licence specified in this repository.*
+*This README documents the complete design and implementation of HapticElbow. All hardware files, firmware and software are openly available in this repository.*
