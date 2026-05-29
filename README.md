@@ -61,7 +61,7 @@ That is the reason robots are useful in rehabilitation. A robot can support thou
 Motor learning depends on feedback. For a rehabilitation device, two kinds of touch-based feedback are relevant:
 
 - **Kinaesthetic feedback** - forces transmitted through the structure of the device. Our system uses a back-drivable brushless motor in current (torque) mode. That means the motor produces a smooth, soft push, and never locks the joint in a stiff position.
-- **Vibrotactile feedback** - short skin vibrations that signal events. Vibrations are useful for things like "you have reached the limit" or "good job". Bark and colleagues showed that vibrotactile cues at the arm can carry this kind of guidance information through the skin, so the patient does not have to watch a screen to receive it [[5]](#7-references).
+- **Vibrotactile feedback** - short skin vibrations that signal events. Vibrations are useful for things like "you have reached the limit" or "good job". In a broad review of feedback in motor learning, Sigrist and colleagues found that added haptic feedback, such as vibration, can support learning and lets the patient rely less on watching a screen [[5]](#7-references).
 
 ### 1.3 The compensation problem
 
@@ -542,7 +542,7 @@ HapticElbow is a low-cost, open-source elbow exoskeleton for upper-limb neuroreh
 
 [4] L. Marchal-Crespo and D. J. Reinkensmeyer, "Review of control strategies for robotic movement training after neurologic injury," *J. NeuroEng. Rehabil.*, vol. 6, no. 1, p. 20, Jun. 2009, doi: [10.1186/1743-0003-6-20](https://doi.org/10.1186/1743-0003-6-20).
 
-[5] K. Bark, J. W. Wheeler, G. Lee, J. Redmond, and A. M. Okamura, "Comparison of skin stretch and vibrotactile stimulation for feedback of proprioceptive information," in *Proc. IEEE Symp. Haptic Interfaces for Virtual Environment and Teleoperator Syst.*, 2009, pp. 71-78, doi: [10.1109/HAPTIC.2009.4810812](https://doi.org/10.1109/HAPTIC.2009.4810812).
+[5] R. Sigrist, G. Rauter, R. Riener, and P. Wolf, "Augmented visual, auditory, haptic, and multimodal feedback in motor learning: A review," *Psychon. Bull. Rev.*, vol. 20, no. 1, pp. 21-53, Feb. 2013, doi: [10.3758/s13423-012-0333-8](https://doi.org/10.3758/s13423-012-0333-8).
 
 [6] M. F. Levin, J. A. Kleim, and S. L. Wolf, "What do motor recovery and compensation mean in patients following stroke?" *Neurorehabil. Neural Repair*, vol. 23, no. 4, pp. 313-319, May 2009, doi: [10.1177/1545968308328727](https://doi.org/10.1177/1545968308328727).
 
