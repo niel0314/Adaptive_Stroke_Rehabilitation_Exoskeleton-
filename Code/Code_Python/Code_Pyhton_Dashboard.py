@@ -489,6 +489,7 @@ class CompensationMonitor:
     # ── Lifecycle ─────────────────────────────────────────────────────
 
     def start(self, imu_upper: float, imu_lower: float, motor_deg: float):
+        """Begin a session: store the current pose as the baseline and clear all state."""
         self._imu1_filtered = imu_upper
         self._prev_t = time.time()
         self._session_baseline_imu1 = imu_upper
@@ -522,6 +523,7 @@ class CompensationMonitor:
         self._active = True
 
     def stop(self):
+        """End the session; the detector stops scoring until started again."""
         self._active = False
         self.level = "INACTIVE"
 
@@ -1099,6 +1101,8 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_sidebar(self):
+        """Build the left sidebar: branding, the connection/status cards, and the
+        main action buttons (Calibrate, Start, Stop, Reset)."""
         sb = ctk.CTkFrame(self, width=260, corner_radius=0,
                           fg_color=THEME["bg_sidebar"])
         sb.pack(side="left", fill="y")
@@ -1189,6 +1193,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_main_frame(self):
+        """Build the right-hand area: the header bar on top, the tab strip below."""
         main = ctk.CTkFrame(self, fg_color="transparent")
         main.pack(side="right", fill="both", expand=True, padx=24, pady=24)
 
@@ -1196,6 +1201,8 @@ class RehabApp(ctk.CTk):
         self._build_tabs(main)
 
     def _build_header(self, parent):
+        """Build the always-visible header: live angle, IMU read-outs, the central
+        tare buttons, the torque/target KPIs and the small 2D arm sketch."""
         card = make_card(parent)
         card.pack(fill="x", pady=(0, 16), ipady=8)
 
@@ -1278,6 +1285,7 @@ class RehabApp(ctk.CTk):
 
     def _kpi_block(self, parent, label: str, value: str,
                    color: str) -> ctk.CTkLabel:
+        """Make one small labelled KPI read-out for the header."""
         col = ctk.CTkFrame(parent, fg_color="transparent")
         col.pack(side="left", padx=(0, 24))
         ctk.CTkLabel(col, text=label, font=FONTS["small"],
@@ -1287,6 +1295,7 @@ class RehabApp(ctk.CTk):
         return lbl
 
     def _build_tabs(self, parent):
+        """Create the tab strip and build each of the nine tabs into it."""
         tv = ctk.CTkTabview(
             parent, corner_radius=12,
             fg_color=THEME["bg_card"],
@@ -1314,6 +1323,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_info(self, tab):
+        """Build the Project Info tab: a read-only summary of the project."""
         info = (
             "Adaptive Stroke Rehabilitation Exoskeleton            "
             "Niel Boon & Senne Peeters\n\n"
@@ -1359,6 +1369,8 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_settings(self, tab):
+        """Build the Settings tab: mode switch plus every therapy parameter slider.
+        Sliders are disabled until "Adjust Settings" is pressed, then sent on Save."""
         s = ctk.CTkScrollableFrame(
             tab, fg_color="transparent",
             scrollbar_button_color=THEME["border"],
@@ -1445,6 +1457,7 @@ class RehabApp(ctk.CTk):
         self.btn_save.configure(state="disabled")
 
     def _settings_card(self, parent, title: str) -> ctk.CTkFrame:
+        """Make one titled card to group related sliders inside a settings tab."""
         card = make_card(parent)
         card.pack(fill="x", padx=8, pady=6)
         ctk.CTkLabel(card, text=title, font=FONTS["h3"],
@@ -1453,6 +1466,7 @@ class RehabApp(ctk.CTk):
         return card
 
     def _slider(self, parent, mn, mx, cmd) -> ctk.CTkSlider:
+        """Make a plain slider (starts disabled) and register it for enable/disable."""
         sl = ctk.CTkSlider(parent, from_=mn, to=mx, command=cmd,
                            progress_color=THEME["accent"],
                            button_color=THEME["accent"],
@@ -1462,6 +1476,7 @@ class RehabApp(ctk.CTk):
         return sl
 
     def _labeled_slider(self, parent, text, mn, mx, start) -> ctk.CTkSlider:
+        """Make a slider with a label that shows its live value next to its name."""
         lbl = ctk.CTkLabel(parent, text=f"{text}     {start:.2f}",
                            font=FONTS["body"],
                            text_color=THEME["text_primary"], anchor="w")
@@ -1483,6 +1498,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_3d(self, tab):
+        """Build the 3D arm tab: the live stick figure plus the Mirror Therapy toggle."""
         make_section_title(tab, "3D Arm Simulation",
                            "Use the tare buttons at the top of the screen to "
                            "calibrate the IMU orientation — they apply to "
@@ -1576,6 +1592,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_position(self, tab):
+        """Build the Position Control tab: preset and slider-based target angles."""
         make_section_title(tab, "Manual Position Control",
                            "Make sure therapy is on 'Stop' before setting a "
                            "target angle.")
@@ -1628,6 +1645,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_rom(self, tab):
+        """Build the ROM test tab: start/stop buttons and a dial of the reached range."""
         make_section_title(tab, "Range of Motion  (ROM)",
                            "Press Start and move the arm freely through "
                            "its full range.")
@@ -1676,6 +1694,8 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_compensation(self, tab):
+        """Build the Anti-Compensation tab: monitoring controls, the live status and
+        score panels, the session stats, the per-reach chart and the sensitivity slider."""
         # The chart at the bottom needs a generous fixed height to stay
         # readable, so we wrap everything in a scrollable frame instead
         # of fighting for vertical space with the controls above it.
@@ -1893,6 +1913,7 @@ class RehabApp(ctk.CTk):
     def _mini_metric(self, parent, title: str,
                      color: Optional[str] = None,
                      tooltip: Optional[str] = None) -> ctk.CTkLabel:
+        """Make one small live metric (title + value) for the compensation panel."""
         if color is None:
             color = THEME["text_primary"]
         col = ctk.CTkFrame(parent, fg_color="transparent")
@@ -1912,6 +1933,7 @@ class RehabApp(ctk.CTk):
 
     def _stat(self, parent, title: str, color: str,
               tooltip: Optional[str] = None) -> ctk.CTkLabel:
+        """Make one big session-statistic block (title + value) for the stats row."""
         blk = ctk.CTkFrame(parent, fg_color="transparent")
         blk.pack(side="left", fill="x", expand=True)
         title_disp = f"{title}  ⓘ" if tooltip else title
@@ -1930,6 +1952,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_game(self, tab):
+        """Build the Game Mode tab: the game selector and the play canvas."""
         make_section_title(tab, "Therapy Challenge",
                            "Play a game to make rehabilitation more engaging "
                            "and goal-directed.")
@@ -2147,6 +2170,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _build_tab_graphs(self, tab):
+        """Build the Live Graphs tab: a 2x2 grid of time plots filled by _loop_graphs."""
         # The four live graphs (position, velocity, acceleration, torque).
         fig = Figure(figsize=(6, 4), dpi=100)
         fig.patch.set_facecolor(THEME["bg_card"])
@@ -2167,6 +2191,9 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _on_serial_line(self, line: str):
+        """Handle one telemetry line from the Arduino. Each line is "KEY:value"
+        (POS/VEL/TRQ/STATE/IMU1/IMU2); we update the matching state, buffers and
+        labels. IMU1 is sign-flipped and both IMUs have their tare offset removed."""
         if not line:
             return
         try:
@@ -2209,6 +2236,7 @@ class RehabApp(ctk.CTk):
             pass  # Unparseable line — just skip
 
     def _set_state_code(self, code: str):
+        """Translate the firmware's STATE number (0..5) into a status label + colour."""
         mapping = {
             "0": ("Waiting for Index...",   THEME["warning"]),
             "1": ("Ready to calibrate",     THEME["warning"]),
@@ -2222,6 +2250,7 @@ class RehabApp(ctk.CTk):
             self._set_status(text, color)
 
     def _set_status(self, text: str, color: str):
+        """Update the sidebar status text and the coloured status dot."""
         self.lbl_status.configure(text=text, text_color=color)
         self.status_dot.configure(text_color=color)
 
@@ -2230,10 +2259,12 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _loop_serial(self):
+        """Drain the serial buffer every 30 ms and feed each line to the handler."""
         self.serial.pump(self._on_serial_line)
         self.after(30, self._loop_serial)
 
     def _loop_check_connection(self):
+        """Once per second: show OFFLINE if no telemetry arrived, and update the timer."""
         if not self.serial.alive:
             self._set_status("OFFLINE / NO POWER", THEME["danger"])
         elapsed = int(time.time() - self.start_time)
@@ -2241,6 +2272,7 @@ class RehabApp(ctk.CTk):
         self.after(1000, self._loop_check_connection)
 
     def _loop_graphs(self):
+        """Redraw the four live time-plots every 500 ms from the telemetry buffers."""
         try:
             min_len = min(len(self.buf.t),  len(self.buf.pos),
                           len(self.buf.vel), len(self.buf.acc),
@@ -2271,6 +2303,9 @@ class RehabApp(ctk.CTk):
         self.after(500, self._loop_graphs)
 
     def _loop_3d(self):
+        """Redraw the 3D arm every 50 ms. Forward kinematics from the upper-arm IMU
+        and the motor angle give the shoulder, elbow and wrist points; the mirror
+        arm (if on) is the same pose flipped across the body's centre line."""
         try:
             rad1 = math.radians(self.current_imu1)
             rad2 = math.radians(self.current_motor_angle)
@@ -2325,6 +2360,7 @@ class RehabApp(ctk.CTk):
             pass
 
     def _loop_compensation(self):
+        """Every 150 ms: feed the latest pose to the detector and redraw its UI + chart."""
         try:
             # Tick the detector
             self.comp.tick(self.current_imu1,
@@ -2346,6 +2382,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _update_arm_visual(self, degrees: float):
+        """Update the header's big angle read-out and the little 2D elbow sketch."""
         self.lbl_degrees.configure(text=f"{degrees:.1f}°")
         c = self.canvas_arm
         c.delete("dyn")
@@ -2396,16 +2433,19 @@ class RehabApp(ctk.CTk):
         print(f"[Tare] upper_arm={target_upper}°, lower_arm={target_lower}°")
 
     def _switch_mode(self, choice: str):
+        """Send the matching MODE_ command when the therapist flips the mode switch."""
         if   choice == "Assistive (Help)":   self.serial.send("MODE_ASSISTIVE")
         elif choice == "Resistive (Train)":  self.serial.send("MODE_RESISTIVE")
 
     def _activate_settings(self):
+        """Enter settings mode: tell the firmware, then unlock the sliders for editing."""
         self.serial.send("CHANGE_SETTINGS")
         for sl in self.sliders: sl.configure(state="normal")
         self.btn_save.configure(state="normal")
         self.btn_start.configure(state="disabled")
 
     def _save_settings(self):
+        """Push every slider value to the firmware as a SET_ command, then lock again."""
         s = self.serial
         s.send(f"SET_LIM_MIN:{self.sl_lim_min.get():.1f}")
         s.send(f"SET_LIM_MAX:{self.sl_lim_max.get():.1f}")
@@ -2423,18 +2463,21 @@ class RehabApp(ctk.CTk):
         self.btn_start.configure(state="normal")
 
     def _check_lim_min(self, _value):
+        """Keep the min-limit slider at least 5° below the max, and update its label."""
         if self.sl_lim_min.get() > self.sl_lim_max.get() - 5:
             self.sl_lim_min.set(self.sl_lim_max.get() - 5)
         self.lbl_lim_min.configure(
             text=f"Minimum Angle (Extension)     {self.sl_lim_min.get():.2f}")
 
     def _check_lim_max(self, _value):
+        """Keep the max-limit slider at least 5° above the min, and update its label."""
         if self.sl_lim_max.get() < self.sl_lim_min.get() + 5:
             self.sl_lim_max.set(self.sl_lim_min.get() + 5)
         self.lbl_lim_max.configure(
             text=f"Maximum Angle (Flexion)     {self.sl_lim_max.get():.2f}")
 
     def _set_angle(self, angle: float):
+        """Command the motor to a target angle (preset button or slider)."""
         self.current_target = float(angle)
         self.serial.send(f"SET_ANGLE:{angle:.1f}")
 
@@ -2443,6 +2486,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _start_rom_test(self):
+        """Begin a ROM test: switch to free-ride mode and start tracking min/max angle."""
         self.rom.active = True
         self.rom.rom_min = 100.0
         self.rom.rom_max = 0.0
@@ -2453,6 +2497,7 @@ class RehabApp(ctk.CTk):
             text_color=THEME["accent"])
 
     def _stop_rom_test(self):
+        """End the ROM test, stop the motor and restore the previously selected mode."""
         self.rom.active = False
         self.serial.send("stop")
         self._switch_mode(self.mode_switch.get())
@@ -2461,6 +2506,7 @@ class RehabApp(ctk.CTk):
             text_color=THEME["success"])
 
     def _check_rom_test(self, angle: float):
+        """During a ROM test, widen the recorded min/max and redraw the range dial."""
         if not self.rom.active:
             return
         if angle < self.rom.rom_min: self.rom.rom_min = angle
@@ -2480,6 +2526,7 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _start_compensation(self):
+        """Start a monitoring session: capture the baseline pose and arm the detector."""
         self.comp.start(self.current_imu1, self.current_imu2,
                         self.current_motor_angle)
         self.btn_start_comp.configure(state="disabled")
@@ -2488,12 +2535,14 @@ class RehabApp(ctk.CTk):
             text="No reach yet", text_color=THEME["text_secondary"])
 
     def _stop_compensation(self):
+        """Stop the monitoring session and reset the status box to inactive."""
         self.comp.stop()
         self.btn_start_comp.configure(state="normal")
         self.btn_stop_comp.configure(state="disabled")
         self._set_compensation_box("INACTIVE")
 
     def _export_compensation_report(self):
+        """Ask for a file name and save the session report PNG (handles errors)."""
         if not self.comp.has_log:
             messagebox.showinfo("Export", "No data to export yet.")
             return
@@ -2531,6 +2580,7 @@ class RehabApp(ctk.CTk):
                  f"{self.comp.level_alarm:.0f}%")
 
     def _set_compensation_box(self, level: str):
+        """Colour and label the big status box for the current compensation level."""
         styles = {
             "INACTIVE":     (THEME["bg_card_alt"], THEME["border_subtle"],
                              "INACTIVE",     THEME["text_muted"]),
@@ -2548,6 +2598,8 @@ class RehabApp(ctk.CTk):
         self.lbl_comp_status.configure(text=tx, text_color=fg)
 
     def _render_compensation_ui(self):
+        """Refresh the compensation panel: score, status box (flashing on alarm),
+        progress bar, the SHOULDER/ELBOW mini-metrics and the session counters."""
         comp = self.comp
         lvl  = comp.level
 
@@ -2726,6 +2778,8 @@ class RehabApp(ctk.CTk):
     # ===================================================================
 
     def _switch_game_mode(self, choice: str):
+        """Switch the active game, reset its score, and show the Ghost-Arm speed slider
+        only when that mode is selected."""
         self.game.mode = choice
         self.game.score = 0
         self.game.ghost_score = 0
@@ -2736,12 +2790,14 @@ class RehabApp(ctk.CTk):
             self.frame_ghost_settings.pack_forget()
 
     def _reset_game(self):
+        """Reset the current game's score and target back to the start values."""
         self.game.score = 0
         self.game.ghost_score = 0
         self.game.target_y = 150
         self.lbl_game_score.configure(text="0")
 
     def _draw_game_grid(self):
+        """Draw the background grid of the game canvas."""
         c = self.canvas_game
         c.create_rectangle(0, 0, 600, 320, fill=THEME["bg_canvas"], outline="")
         for x in range(0, 600, 30):
@@ -2750,6 +2806,9 @@ class RehabApp(ctk.CTk):
             c.create_line(0, y, 600, y, fill=THEME["border_subtle"])
 
     def _update_game_visual(self, angle: float):
+        """Redraw the active game for the current elbow angle and update its score.
+        "Catch Blocks" rewards holding the cursor in the target; "Ghost Arm" rewards
+        matching a moving reference arm."""
         c = self.canvas_game
         c.delete("all"); self._draw_game_grid()
 
