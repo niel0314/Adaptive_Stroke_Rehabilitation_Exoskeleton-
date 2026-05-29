@@ -323,7 +323,7 @@ The therapist sets a minimum and maximum elbow angle in the dashboard. When the 
 
 We initially started with 0.3&nbsp;Nm/°. That felt like hitting a wall and bounced the arm out of range. Lowering it to 0.1&nbsp;Nm/° and adding the vibration pulse turned out to be the right combination.
 
-#### 3.5.7 Safety net
+#### 3.5.7 Safety
 
 Three guards run on top of every mode:
 
